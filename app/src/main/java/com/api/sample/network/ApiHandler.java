@@ -13,7 +13,7 @@ public class ApiHandler {
     private static ApiHandler mInstance;
 
     // Это базовый урл, обычно его прописывают отдельно в доке Swagger, поэтому найти его не составит труда
-    private static final String BASE_URL = "https://reqres.in/api/";
+    private static final String BASE_URL = "https://namaztimes.kz/ru/api/";
 
     private final Retrofit retrofit;
 

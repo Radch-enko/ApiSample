@@ -8,7 +8,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.api.sample.databinding.ActivityMainBinding;
 import com.api.sample.network.ApiHandler;
 import com.api.sample.network.ErrorUtils;
-import com.api.sample.network.models.LoginBody;
 import com.api.sample.network.service.ApiService;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
@@ -20,27 +19,26 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     ApiService service = ApiHandler.getInstance().getService();
-    CompositeDisposable disposableBag = new CompositeDisposable();
-    ErrorUtils errorHandler = new ErrorUtils();
-    ActivityMainBinding binding;
+
+    CompositeDisposable disposableBag = new CompositeDisposable(); /* воспринимайте это как сумку куда мы кладем все наши сетевые запросы,
+                                                                    и выбрасываем эту сумку когда наша Activity закрыта */
+
+    ErrorUtils errorHandler = new ErrorUtils(); // Наш обработчик ошибок
+    ActivityMainBinding binding; // Это объект который содержит в себе все View из activity_main.xml
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        binding = ActivityMainBinding.inflate(getLayoutInflater()); // Инициализурем наш binding
 
-        binding.buttonRegister.setOnClickListener(view -> {
-            doLogin();
-        });
-        setContentView(binding.getRoot());
-    }
+        Disposable dispose = service.getCountries()
+                .subscribeOn(Schedulers.computation()) // Выбираем где будет выполнять запрос
+                .observeOn(AndroidSchedulers.mainThread()) /* Выбираем на каком потоке будем обрабатывать результат,
+                                                              в данном случае на main потоке, так как мы хотим менять UI*/
 
-    private void doLogin() {
-        Disposable dispose = service.doLogin(getLoginData())
-                .subscribeOn(Schedulers.computation())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(loginResponse -> {
-                    Toast.makeText(getApplicationContext(), "Авторизация прошла успешно! Держи свой токен: " + loginResponse.getToken(), Toast.LENGTH_SHORT).show();
+                // В subscribe передается две лямбды: если все выполнилось успешно и если произошла ошибка
+                .subscribe(response -> {
+                    binding.list.setAdapter(new CountriesAdapter(this, response));
                 }, throwable -> {
                     errorHandler.handle(throwable, message -> {
                         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
@@ -49,15 +47,16 @@ public class MainActivity extends AppCompatActivity {
                     });
                 });
 
+        // Кладем в сумку наш запрос
         disposableBag.add(dispose);
+
+        setContentView(binding.getRoot());
     }
 
-    private LoginBody getLoginData() {
-        return new LoginBody(binding.editEmail.getText().toString(), binding.editPassword.getText().toString());
-    }
 
     @Override
     protected void onDestroy() {
+        // Очищаем нашу сумку, чтобы после закрытия приложения не висели в бэкграунде
         disposableBag.dispose();
         super.onDestroy();
     }

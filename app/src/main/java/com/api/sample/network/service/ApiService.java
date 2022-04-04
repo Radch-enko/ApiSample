@@ -1,11 +1,12 @@
 package com.api.sample.network.service;
 
-import com.api.sample.network.models.LoginBody;
-import com.api.sample.network.models.LoginResponse;
+import com.api.sample.network.models.CountriesResponse;
 
+import java.util.Map;
+
+import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.Single;
-import retrofit2.http.Body;
-import retrofit2.http.POST;
+import retrofit2.http.GET;
 
 /**
  * Этот интерфейс представляет собой описание всех запросов с бэка которые вы хотите выполнить
@@ -17,8 +18,6 @@ import retrofit2.http.POST;
  * Body классы - классы в которых описано что мы отправляем нам бэк ( к примеру чтобы залогиниться нам надо отправить email и password )
  * */
 public interface ApiService {
-
-    @POST("login")
-        // тут описываем endpoint - эта та часть строки, которая остается если убрать из нее base url
-    Single<LoginResponse> doLogin(@Body LoginBody registerBody);
+    @GET("country?type=json")
+    Observable<Map<String, String>> getCountries();
 }
