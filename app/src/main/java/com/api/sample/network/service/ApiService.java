@@ -3,7 +3,7 @@ package com.api.sample.network.service;
 import com.api.sample.network.models.LoginBody;
 import com.api.sample.network.models.LoginResponse;
 
-import retrofit2.Call;
+import io.reactivex.rxjava3.core.Single;
 import retrofit2.http.Body;
 import retrofit2.http.POST;
 
@@ -18,6 +18,7 @@ import retrofit2.http.POST;
  * */
 public interface ApiService {
 
-    @POST("login") // тут описываем endpoint - эта та часть строки, которая остается если убрать из нее base url
-    Call<LoginResponse> doLogin(@Body LoginBody registerBody);
+    @POST("login")
+        // тут описываем endpoint - эта та часть строки, которая остается если убрать из нее base url
+    Single<LoginResponse> doLogin(@Body LoginBody registerBody);
 }

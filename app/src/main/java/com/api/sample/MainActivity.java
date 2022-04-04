@@ -1,86 +1,64 @@
 package com.api.sample;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.widget.EditText;
 import android.widget.Toast;
 
-import com.api.sample.network.ApiHandler;
+import androidx.appcompat.app.AppCompatActivity;
 
+import com.api.sample.databinding.ActivityMainBinding;
+import com.api.sample.network.ApiHandler;
 import com.api.sample.network.ErrorUtils;
 import com.api.sample.network.models.LoginBody;
-import com.api.sample.network.models.LoginResponse;
-
 import com.api.sample.network.service.ApiService;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    EditText editEmail, editPassword;
-
     ApiService service = ApiHandler.getInstance().getService();
+    CompositeDisposable disposableBag = new CompositeDisposable();
+    ErrorUtils errorHandler = new ErrorUtils();
+    ActivityMainBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
 
-        initializeViews();
-    }
-
-    private void initializeViews() {
-        editEmail = findViewById(R.id.editEmail);
-        editPassword = findViewById(R.id.editPassword);
-
-        findViewById(R.id.buttonRegister).setOnClickListener(view -> {
+        binding.buttonRegister.setOnClickListener(view -> {
             doLogin();
         });
+        setContentView(binding.getRoot());
     }
 
-    // Пока оставлю так, но я начал писать обертку SafeCaller чтобы просто передавать колбэки
-    private void doLogin(){
+    private void doLogin() {
+        Disposable dispose = service.doLogin(getLoginData())
+                .subscribeOn(Schedulers.computation())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(loginResponse -> {
+                    Toast.makeText(getApplicationContext(), "Авторизация прошла успешно! Держи свой токен: " + loginResponse.getToken(), Toast.LENGTH_SHORT).show();
+                }, throwable -> {
+                    errorHandler.handle(throwable, message -> {
+                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                    }, message -> {
+                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                    });
+                });
 
-        AsyncTask.execute(() -> {
-            service.doLogin(getLoginData()).enqueue(new Callback<LoginResponse>() {
-                @Override
-                public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
-                    // onResponse - срабатывает всегда, вне зависимости успешно ли выполнился запрос ( успешное выполение это как правило код 200)
-                    // поэтому мы должны проверять успешно ли выполнился запрос
-                    // и обработать уже серверные ошибки - 404 Not found, 400 Bad Request и так далее
-
-                    if (response.isSuccessful()){
-                        Toast.makeText(getApplicationContext(), "Авторизация прошла успешно! Держи свой токен: " + response.body().getToken(), Toast.LENGTH_SHORT).show();
-                    } else if (response.code() == 400){
-                        // 400 - это Bad request, такую ошибку сервер выдает когда мы неправильно пользуемся API
-                        // поэтому мы на клиентской стороне должны обработать эту ошибку и показать пользователю
-                        // чтобы он понял, что он делает не правильно
-                        // к примеру не ввел email или пароль, но пытается залогиниться
-
-                        // Чтобы преобразовать json ошибки в строку мы используем наш класс ErrorUtils
-                        String serverErrorMessage = ErrorUtils.parseError(response).message();
-                        Toast.makeText(getApplicationContext(), serverErrorMessage, Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(getApplicationContext(), "Произошла неизвестная ошибка! Попробуйте позже", Toast.LENGTH_SHORT).show();
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<LoginResponse> call, Throwable t) {
-                    // в блоке onFailure обрабатываются ошибки, которые не связаны с сервером бэкэнда
-                    // например если на устройстве нет доступа в Интернет
-                    Toast.makeText(getApplicationContext(), t.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
+        disposableBag.add(dispose);
     }
 
     private LoginBody getLoginData() {
-        return new LoginBody(editEmail.getText().toString(), editPassword.getText().toString());
+        return new LoginBody(binding.editEmail.getText().toString(), binding.editPassword.getText().toString());
+    }
+
+    @Override
+    protected void onDestroy() {
+        disposableBag.dispose();
+        super.onDestroy();
     }
 }
