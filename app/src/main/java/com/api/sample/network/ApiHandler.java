@@ -4,8 +4,8 @@ import com.api.sample.network.service.ApiService;
 
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
-import retrofit2.CallAdapter;
 import retrofit2.Retrofit;
+import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiHandler {
@@ -15,9 +15,9 @@ public class ApiHandler {
     // Это базовый урл, обычно его прописывают отдельно в доке Swagger, поэтому найти его не составит труда
     private static final String BASE_URL = "https://reqres.in/api/";
 
-    private Retrofit retrofit;
+    private final Retrofit retrofit;
 
-    public ApiHandler(){
+    public ApiHandler() {
 
         // Здесь мы описываем насколько много информации о выполнении запросы мы хотим видеть в логах
         // По сути тут ничего даже понимать не надо ctrl + c , ctrl + v
@@ -35,9 +35,8 @@ public class ApiHandler {
                 .baseUrl(BASE_URL)
                 .client(client.build())
                 .addConverterFactory(GsonConverterFactory.create()) // говорим ретрофиту что будем использовать GsonConverterFactory чтобы конвертировать json в наши java-классы
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // говорим ретрофиту чтобы он подтянул RxJavaAdapter
                 .build();
-
-        ErrorUtils.retrofit = retrofit;
     }
 
     // через этот метод будем получать экземпляр нашего ApiHandler
