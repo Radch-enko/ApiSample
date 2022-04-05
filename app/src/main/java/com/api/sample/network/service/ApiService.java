@@ -1,11 +1,8 @@
 package com.api.sample.network.service;
 
-import com.api.sample.network.models.CountriesResponse;
-
 import java.util.Map;
 
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.Single;
 import retrofit2.http.GET;
 
 /**
